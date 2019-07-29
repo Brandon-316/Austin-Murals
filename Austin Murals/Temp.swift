@@ -10,7 +10,7 @@ import UIKit
 import SceneKit
 import ARKit
 
-class ViewController: UIViewController {
+class tViewController: UIViewController {
     
     
     //MARK: - Properties
@@ -45,7 +45,7 @@ class ViewController: UIViewController {
         
         if let trackedImages = ARReferenceImage.referenceImages(inGroupNamed: "People", bundle: Bundle.main) {
             configuration.trackingImages = trackedImages
-            configuration.maximumNumberOfTrackedImages = 15
+            configuration.maximumNumberOfTrackedImages = 13
         }
         
         // Run the view's session
@@ -62,15 +62,20 @@ class ViewController: UIViewController {
     
     //MARK: - Methods
     func handleOverlay(for node: SCNNode) {
+        print("Handling overlay")
         //Check that overlay has not been added yet
-        guard node != currentSelectedNode else { return }
+        print(node != currentSelectedNode)
+        print("\nnode: \(node)")
+        print("\ncurrentSelectedNode: \(currentSelectedNode)\n")
+        guard node != currentSelectedNode else { print("node != currentSelectedNode"); return }
         
         //Check if an overlay is already present
         if let currentNode = currentSelectedNode {
             if currentSelectedNode != node {
                 removeOverlay(for: currentNode)
             } else {
-                //Overlay for nod already visible
+                //Overlay for nod already visiblez
+                print("Overlay for nod already visible")
                 return
             }
         }
@@ -80,32 +85,30 @@ class ViewController: UIViewController {
     }
     
     func addOverlay(for node: SCNNode) {
-        guard let nodeName = node.name else { return }
+        print("Adding overlay")
         
-        let name = nodeName.replacingOccurrences(of: "Overlay", with:  "")
-        
+        guard let name = node.name else { return }
         guard let person = People(rawValue: name) else { return }
         
-        DispatchQueue.main.async {
-            self.nameLabel.text = person.title
-        }
-        
+        nameLabel.text = person.title
         
         node.geometry?.materials.first?.transparency = 0.75
     }
     
     func removeOverlay(for node: SCNNode) {
+        print("Removing overlay")
+        
         node.geometry?.materials.first?.transparency = 0.0
         
         self.currentSelectedNode = nil
-            
+        
     }
 }
 
 
 
 // MARK: - ARSCNViewDelegate
-extension ViewController: ARSCNViewDelegate {
+extension tViewController: ARSCNViewDelegate {
     
     func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
         
@@ -117,6 +120,7 @@ extension ViewController: ARSCNViewDelegate {
             guard let person = People(rawValue: imageName) else { return nil }
             
             let plane = SCNPlane(width: physicalSize.width, height: physicalSize.height)
+            //            plane.firstMaterial?.diffuse.contents = UIColor.clear
             
             guard let image = UIImage(named: person.overlay) else { return nil }
             plane.firstMaterial?.diffuse.contents = image
@@ -126,8 +130,10 @@ extension ViewController: ARSCNViewDelegate {
             planeNode.name = person.overlay
             
             planeNode.geometry?.materials.first?.transparency = 0.0
-    
+            
             node.addChildNode(planeNode)
+            
+            print("\n\nnode added: \(person.overlay)\n\n")
         }
         
         return node
@@ -138,19 +144,18 @@ extension ViewController: ARSCNViewDelegate {
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
         
         let results = sceneView.hitTest(centerLocation, options: [SCNHitTestOption.searchMode: 1])
+        print("hitTest: \(results)")
         
         //If only one result add overlay
         if results.count == 1 {
+            print("Result == 1")
             guard let node = results.first?.node else { return }
             
             self.handleOverlay(for: node)
             
-            DispatchQueue.main.async {
-                self.nameView.isHidden = false
-            }
-            
-        //If more than one result find node closest to center
+            //If more than one result find node closest to center
         } else if results.count > 1 {
+            print("Result > 1")
             var people: [Person] = []
             
             for result in results {
@@ -166,15 +171,12 @@ extension ViewController: ARSCNViewDelegate {
             guard let node = people.first?.node else { return }
             
             handleOverlay(for: node)
-            DispatchQueue.main.async {
-                self.nameView.isHidden = false
-            }
             
-        //Results is empty, no node is being hit
+            //Results is empty, no node is being hit
         } else {
+            print("Result == 0")
             if let currentNode = self.currentSelectedNode {
                 removeOverlay(for: currentNode)
-                self.nameView.isHidden = true
             }
         }
         
@@ -188,9 +190,10 @@ extension ViewController: ARSCNViewDelegate {
 //MARK: - Session Methods
 //For bug
 //https://stackoverflow.com/questions/45655562/apple-ios-arkit-a-sensor-failed-to-deliver-the-required-input-error-and-stops
-extension ViewController {
+extension tViewController {
     func session(_ session: ARSession, didFailWithError error: Error) {
         // Present an error message to the user
+        print("Session failed. Changing worldAlignment property.")
         print(error.localizedDescription)
         
         if let arError = error as? ARError {
@@ -213,7 +216,3 @@ extension ViewController {
             .removeExistingAnchors])
     }
 }
-
-
-
-
